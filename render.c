@@ -21,7 +21,7 @@ void checkError() {
     }
 }
 
-void draw(unsigned int program, unsigned int VAO, int num_circles) {
+void draw(unsigned int program, unsigned int VAO, int num_circles, int num_h_circles) {
     float time = glfwGetTime();
     glClearColor(0.0, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -145,7 +145,26 @@ void circleInit(float* data, unsigned int* indices, int index, float center_x, f
     }
 }
 
-void dataInit(unsigned int* VAO, int num_circles, float* center_x, float* center_y, float* radii) {
+void hollowCircleInit(float* data, unsigned int* indices, int index, float center_x, float center_y, float radius) {
+    int data_offset = index*2*(num_sectors+1);
+    int ebo_offset = index*(num_sectors+1);
+    int indices_offset = index*num_sectors*2;
+    for(int sector = 0; sector < num_sectors; sector++) {
+        float angle = 2.0f*pi*((float) sector/num_sectors);
+        data[data_offset+sector*2] = radius * cosf(angle) + center_x;
+        data[data_offset+sector*2+1] = radius * sinf(angle) + center_y;
+    }
+    for(int sector = 0; sector < num_sectors; sector++) {
+        indices[indices_offset+sector*2] = sector+1+ebo_offset;
+        if(sector+2 > num_sectors) {
+            indices[indices_offset+sector*2+1] = 1+ebo_offset;
+        } else {
+            indices[indices_offset+sector*2+1] = sector+2+ebo_offset;
+        }
+    }
+}
+
+void dataInit(unsigned int* VAO, int num_circles, int num_h_circles, float* center_x, float* center_y, float* radii) {
     // float data[] = {
     // //  vertices     colors            texcoords
     //     1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // tr
@@ -161,6 +180,15 @@ void dataInit(unsigned int* VAO, int num_circles, float* center_x, float* center
     for (int i = 0; i < num_circles; i++) {
         circleInit(data, indices, i, center_x[i], center_y[i], radii[i]);
     }
+
+    // int hcircle_data_size = 2*(num_sectors+1)*num_h_circles*sizeof(float);
+    // int hcircle_indices_size = 2*num_sectors*num_h_circles*sizeof(unsigned int);
+    // float* hcircle_data = (float*) malloc(data_size);
+    // unsigned int* hcircle_indices = (unsigned int*) malloc(indices_size);
+
+    // for (int i = num_circles; i < num_circles+num_h_circles; i++) {
+    //     hollowCircleInit(data, indices, i, center_x[i], center_y[i], radii[i]);
+    // }
     // for (int i = 0; i < 3*num_sectors*num_circles; i+=3) {
     //     printf("Index %d: (%d, %d, %d)\n", i/3, indices[i], indices[i+1], indices[i+2]);
     // }
@@ -213,9 +241,9 @@ void dataInit(unsigned int* VAO, int num_circles, float* center_x, float* center
 //     return texture;
 // }
 
-int render(GLFWwindow* window, unsigned int* VAO, unsigned int program, int num_circles, float* center_x, float* center_y, float* radii) {
-    dataInit(VAO, num_circles, center_x, center_y, radii);
-    draw(program, *VAO, num_circles);
+int render(GLFWwindow* window, unsigned int* VAO, unsigned int program, int num_circles, int num_h_circles, float* center_x, float* center_y, float* radii) {
+    dataInit(VAO, num_circles, num_h_circles, center_x, center_y, radii);
+    draw(program, *VAO, num_circles, num_h_circles);
     glfwSwapBuffers(window);
     glfwPollEvents();
     return 0;
